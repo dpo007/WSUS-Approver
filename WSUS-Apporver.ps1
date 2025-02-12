@@ -18,7 +18,7 @@ param (
 )
 
 # Debug
-$DeclineOnly = $true
+#$DeclineOnly = $true
 $DryRun = $true
 $noSync = $true
 
@@ -38,7 +38,8 @@ $approve_classifications = @(
     'Service Packs',
     'Tools',
     'Update Rollups',
-    'Updates'
+    'Updates',
+    'Upgrades'
 )
 $approve_group = 'All Computers'
 
@@ -66,18 +67,35 @@ function is_selected ($update) {
 
     return $false
 }
+
+function TestUpdateTitleLanguageMatch {
+    param (
+        [string]$Title,
+        [string[]]$AllLocales,
+        [string[]]$RestrictToLanguages
+    )
+
+    # Check if title contains any entry from $AllLocales
+    $matchesLocale = $Title -imatch ($AllLocales -join "|")
+
+    # Check if title also contains any entry from $RestrictToLanguages
+    $matchesRestricted = $Title -imatch ($RestrictToLanguages -join "|")
+
+    # Return true if the title matches any locale but does not match any restricted language
+    return $matchesLocale -and -not $matchesRestricted
+}
 #endregion Function Definitions
 
 #################
 # Main Entry Point
 ###################
 
-# Ensure log folder exists
+# Ensure Log folder exists
 if (-not (Test-Path ('{0}\logs' -f $PSScriptRoot))) {
     New-Item -ItemType Directory -Path ('{0}\logs' -f $PSScriptRoot) | Out-Null
 }
 
-# Reset log file
+# Reset Log file
 if (Test-Path $logFile) {
     Remove-Item $logFile
 }
@@ -120,75 +138,47 @@ else {
     $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 }
 
-$updates | ForEach-Object {
-    switch -Regex ($_.Title) {
-        'ia64|itanium' {
-            if ($DeclineIA64 -or $_.LegacyName -Match 'ia64|itanium') {
-                Log "Declining $($_.Title) [ia64]"
-                if (-not $DryRun) { $_.Decline() }
+foreach ($update in $updates) {
+    if ($DeclineIA64 -and $update.Title -Match 'ia64|itanium' -or $update.LegacyName -Match 'ia64|itanium') {
+        Log "Declining $($update.Title) [ia64]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($DeclineARM64 -and $update.Title -Match 'arm64') {
+        Log "Declining $($update.Title) [arm64]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($DeclineX86 -and $update.Title -Match 'x86') {
+        Log "Declining $($update.Title) [x86]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($DeclineX64 -and $update.Title -Match 'x64') {
+        Log "Declining $($update.Title) [x64]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($DeclinePreview -and $update.Title -Match 'preview') {
+        Log "Declining $($update.Title) [preview]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($DeclineBeta -and ($update.IsBeta -or $update.Title -Match 'beta')) {
+        Log "Declining $($update.Title) [beta]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages)) {
+        Log "Declining $($update.Title) [language]"
+        if (-not $DryRun) { $update.Decline() }
+    }
+    elseif ($update.IsSuperseded -or $update.PublicationState -eq "Expired") {
+        continue  # Skips this iteration instead of using 'return' which would exit the entire loop
+    }
+    elseif (-not $update.IsApproved) {
+        if ($update.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($update.UpdateClassificationTitle)) {
+            if ($update.RequiresLicenseAgreementAcceptance) {
+                Log "Accepting license agreement for $($update.Title)"
+                if (-not $DryRun) { $update.AcceptLicenseAgreement() }
             }
-            break
-        }
-        'arm64' {
-            if ($DeclineARM64) {
-                Log "Declining $($_.Title) [arm64]"
-                if (-not $DryRun) { $_.Decline() }
-            }
-            break
-        }
-        'x86' {
-            if ($DeclineX86) {
-                Log "Declining $($_.Title) [x86]"
-                if (-not $DryRun) { $_.Decline() }
-            }
-            break
-        }
-        'x64' {
-            if ($DeclineX64) {
-                Log "Declining $($_.Title) [x64]"
-                if (-not $DryRun) { $_.Decline() }
-            }
-            break
-        }
-        'preview' {
-            if ($DeclinePreview) {
-                Log "Declining $($_.Title) [preview]"
-                if (-not $DryRun) { $_.Decline() }
-            }
-            break
-        }
-        'beta' {
-            if ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
-                Log "Declining $($_.Title) [beta]"
-                if (-not $DryRun) { $_.Decline() }
-            }
-            break
-        }
-        default {
-            if ($RestrictToLanguages.Count -gt 0) {
-                # If the update's title contains a locale//language string, but not in $RestrictToLanguages, decline it
-                if ($allLocales | Where-Object { $_ -in $_.Title -and $_ -notin $RestrictToLanguages }) {
-                    Log "Declining $($_.Title) [language]"
-                    if (-not $DryRun) { $_.Decline() }
-                    return
-                }
-            }
-            elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
-                # Handle superseded and expired packages after any new updates have been approved
-                return
-            }
-            elseif (-not $_.IsApproved -and -not $DeclineOnly) {
-                # Add this condition
-                if ($_.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($_.UpdateClassificationTitle)) {
-                    if ($_.RequiresLicenseAgreementAcceptance) {
-                        Log "Accepting license agreement for $($_.Title)"
-                        if (-not $DryRun) { $_.AcceptLicenseAgreement() }
-                    }
 
-                    Log "Approving $($_.Title)"
-                    if (-not $DryRun) { $_.Approve('Install', $group) }
-                }
-            }
+            Log "Approving $($update.Title)"
+            if (-not $DryRun) { $update.Approve("Install", $group) }
         }
     }
 }
