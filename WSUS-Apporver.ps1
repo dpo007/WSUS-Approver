@@ -109,6 +109,8 @@ if (Test-Path $logFile) {
 # Load the WSUS assembly
 [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
+
+# Get the groups, subscription, categories and classifications
 $group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
 $subscription = $wsus.GetSubscription()
 $update_categories = $subscription.GetUpdateCategories()
@@ -123,7 +125,7 @@ if (-not $NoSync) {
 }
 
 # Wait for any currently running synchronization jobs to finish before continuing
-while ($subscription.GetSynchronizationStatus() -ne "NotProcessing") {
+while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
     Log "Waiting for synchronization to finish..."
     Start-Sleep -s 10
 }
