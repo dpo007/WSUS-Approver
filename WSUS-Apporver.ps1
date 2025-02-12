@@ -16,7 +16,7 @@ param (
     [bool]$DeclineBeta = $true
 )
 
-$logfile = "$PSScriptRoot\logs\wsus-approve.log"
+$logFile = ('{0}\logs\wsus-approver.log' -f $PSScriptRoot)
 
 # Do not add upgrades here. They are currently handled manually for more control
 $approve_classifications = @(
@@ -42,7 +42,7 @@ $update_classifications = $subscription.GetUpdateClassifications()
 
 
 function log ($text) {
-    Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logfile
+    Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
 }
 
 function is_selected ($update) {
@@ -62,9 +62,9 @@ function is_selected ($update) {
     return $false
 }
 
-# Reset logfile
-if (Test-Path $logfile) {
-    Remove-Item $logfile
+# Reset log file
+if (Test-Path $logFile) {
+    Remove-Item $logFile
 }
 
 if (-not $NoSync) {
@@ -83,7 +83,7 @@ while ($subscription.GetSynchronizationStatus() -ne "NotProcessing") {
 # Start by removing deselected updates as there is no need to do further processing on them
 log "Checking for deselected updates"
 $wsus.GetUpdates() | ForEach-Object {
-    if (-Not (is_selected $_)) {
+    if (-not (is_selected $_)) {
         log "Deleting deselected update: $($_.Title)"
         if (-not $DryRun) { $wsus.DeleteUpdate($_.Id.UpdateId) }
     }
