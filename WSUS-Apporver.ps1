@@ -139,46 +139,64 @@ else {
 }
 
 foreach ($update in $updates) {
-    if ($DeclineIA64 -and $update.Title -Match 'ia64|itanium' -or $update.LegacyName -Match 'ia64|itanium') {
-        Log "Declining $($update.Title) [ia64]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($DeclineARM64 -and $update.Title -Match 'arm64') {
-        Log "Declining $($update.Title) [arm64]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($DeclineX86 -and $update.Title -Match 'x86') {
-        Log "Declining $($update.Title) [x86]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($DeclineX64 -and $update.Title -Match 'x64') {
-        Log "Declining $($update.Title) [x64]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($DeclinePreview -and $update.Title -Match 'preview') {
-        Log "Declining $($update.Title) [preview]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($DeclineBeta -and ($update.IsBeta -or $update.Title -Match 'beta')) {
-        Log "Declining $($update.Title) [beta]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages)) {
-        Log "Declining $($update.Title) [language]"
-        if (-not $DryRun) { $update.Decline() }
-    }
-    elseif ($update.IsSuperseded -or $update.PublicationState -eq "Expired") {
-        continue  # Skips this iteration instead of using 'return' which would exit the entire loop
-    }
-    elseif (-not $update.IsApproved) {
-        if ($update.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($update.UpdateClassificationTitle)) {
-            if ($update.RequiresLicenseAgreementAcceptance) {
-                Log "Accepting license agreement for $($update.Title)"
-                if (-not $DryRun) { $update.AcceptLicenseAgreement() }
-            }
+    switch ($true) {
+        { $DeclineIA64 -and ($update.Title -match 'ia64|itanium' -or $update.LegacyName -match 'ia64|itanium') } {
+            Log "Declining $($update.Title) [ia64]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
 
-            Log "Approving $($update.Title)"
-            if (-not $DryRun) { $update.Approve("Install", $group) }
+        { $DeclineARM64 -and $update.Title -match 'arm64' } {
+            Log "Declining $($update.Title) [arm64]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $DeclineX86 -and $update.Title -match 'x86' } {
+            Log "Declining $($update.Title) [x86]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $DeclineX64 -and $update.Title -match 'x64' } {
+            Log "Declining $($update.Title) [x64]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $DeclinePreview -and $update.Title -match 'preview' } {
+            Log "Declining $($update.Title) [preview]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $DeclineBeta -and ($update.IsBeta -or $update.Title -match 'beta') } {
+            Log "Declining $($update.Title) [beta]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages) } {
+            Log "Declining $($update.Title) [language]"
+            if (-not $DryRun) { $update.Decline() }
+            break
+        }
+
+        { $update.IsSuperseded -or $update.PublicationState -eq "Expired" } {
+            # Skip superseded and expired updates, they will be declined later
+            continue
+        }
+
+        { -not $update.IsApproved -and -not $DeclineOnly } {
+            if ($update.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($update.UpdateClassificationTitle)) {
+                if ($update.RequiresLicenseAgreementAcceptance) {
+                    Log "Accepting license agreement for $($update.Title)"
+                    if (-not $DryRun) { $update.AcceptLicenseAgreement() }
+                }
+
+                Log "Approving $($update.Title)"
+                if (-not $DryRun) { $update.Approve("Install", $group) }
+            }
         }
     }
 }
