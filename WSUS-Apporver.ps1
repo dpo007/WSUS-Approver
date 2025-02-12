@@ -7,6 +7,7 @@ param (
     [switch]$NoSync,
     [switch]$Reset,
     [switch]$DryRun,
+    [switch]$DeclineOnly,
     [bool]$DeclineIA64 = $true,
     [bool]$DeclineARM64 = $true,
     [bool]$DeclineX86 = $true,
@@ -34,14 +35,14 @@ $approve_group = "All Computers"
 
 [reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
-$group = $wsus.GetComputerTargetGroups() | Where-Object {$_.Name -eq $approve_group}
+$group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
 $subscription = $wsus.GetSubscription()
 $update_categories = $subscription.GetUpdateCategories()
 $update_classifications = $subscription.GetUpdateClassifications()
 
 
 function log ($text) {
-    Write-Output "$(get-date -format s): $text" | Tee-Object -Append $logfile
+    Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logfile
 }
 
 function is_selected ($update) {
@@ -54,7 +55,7 @@ function is_selected ($update) {
 
     Foreach ($product in $update.ProductTitles) {
         if ($product -in $update_categories.Title) {
-	        return $true
+            return $true
         }
     }
 
@@ -81,7 +82,7 @@ while ($subscription.GetSynchronizationStatus() -ne "NotProcessing") {
 
 # Start by removing deselected updates as there is no need to do further processing on them
 log "Checking for deselected updates"
-$wsus.GetUpdates() | Foreach-Object {
+$wsus.GetUpdates() | ForEach-Object {
     if (-Not (is_selected $_)) {
         log "Deleting deselected update: $($_.Title)"
         if (-not $DryRun) { $wsus.DeleteUpdate($_.Id.UpdateId) }
@@ -90,33 +91,42 @@ $wsus.GetUpdates() | Foreach-Object {
 
 if ($Reset) {
     $updates = $wsus.GetUpdates()
-} else {
-    $updates = $wsus.GetUpdates() | Where-Object {-not $_.IsDeclined}
+}
+else {
+    $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 }
 
-$updates | Foreach-Object {
+$updates | ForEach-Object {
     if ($DeclineIA64 -and $_.Title -Match 'ia64|itanium' -or $_.LegacyName -Match 'ia64|itanium') {
         log "Declining $($_.Title) [ia64]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($DeclineARM64 -and $_.Title -Match 'arm64') {
+    }
+    elseif ($DeclineARM64 -and $_.Title -Match 'arm64') {
         log "Declining $($_.Title) [arm64]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($DeclineX86 -and $_.Title -Match 'x86') {
+    }
+    elseif ($DeclineX86 -and $_.Title -Match 'x86') {
         log "Declining $($_.Title) [x86]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($DeclineX64 -and $_.Title -Match 'x64') {
+    }
+    elseif ($DeclineX64 -and $_.Title -Match 'x64') {
         log "Declining $($_.Title) [x64]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($DeclinePreview -and $_.Title -Match 'preview') {
+    }
+    elseif ($DeclinePreview -and $_.Title -Match 'preview') {
         log "Declining $($_.Title) [preview]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
+    }
+    elseif ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
         log "Declining $($_.Title) [beta]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
+    }
+    elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
         # Handle superseded and expired packages after any new updates have been approved
         return
-    } elseif (-not $_.IsApproved) {
+    }
+    elseif (-not $_.IsApproved -and -not $DeclineOnly) {
+        # Add this condition
         if ($_.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($_.UpdateClassificationTitle)) {
             if ($_.RequiresLicenseAgreementAcceptance) {
                 log "Accepting license agreement for $($_.Title)"
@@ -132,12 +142,13 @@ $updates | Foreach-Object {
 # After any new superseding updates have been approved above, superseded and expired updates
 # can be declined. We need to handle both here as it seems like superseded updates are also
 # marked expired, but some updates are just expired without being superseded.
-$updates = $wsus.GetUpdates() | Where-Object {-not $_.IsDeclined}
-$updates | Foreach-Object {
+$updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
+$updates | ForEach-Object {
     if ($_.IsSuperseded) {
         log "Declining $($_.Title) [superseded]"
         if (-not $DryRun) { $_.Decline() }
-    } elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
+    }
+    elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
         log "Declining $($_.Title) [expired]"
         if (-not $DryRun) { $_.Decline() }
     }
