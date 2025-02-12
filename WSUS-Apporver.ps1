@@ -17,7 +17,15 @@ param (
     [string[]]$RestrictToLanguages = @('en-us', 'en-gb') # Only these languages/locales will be kept
 )
 
-# Initialize values
+# Debug
+$DeclineOnly = $true
+$DryRun = $true
+$noSync = $true
+
+# Set default error action to Stop
+$ErrorActionPreference = 'Stop'
+
+#region Initialize values
 $logFile = ('{0}\logs\wsus-approver.Log' -f $PSScriptRoot)
 
 # Do not add upgrades here. They are currently handled manually for more control
@@ -33,6 +41,9 @@ $approve_classifications = @(
     'Updates'
 )
 $approve_group = 'All Computers'
+
+[string[]]$allLocales = [System.Globalization.CultureInfo]::GetCultures([System.Globalization.CultureTypes]::AllCultures) | Where-Object { $_.Name -match "-" } | Select-Object -ExpandProperty Name
+#endregion Initialize values
 
 #region Function Definitions
 function Log ($text) {
@@ -72,7 +83,7 @@ if (Test-Path $logFile) {
 }
 
 # Load the WSUS assembly
-[void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
+[reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
 $group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
 $subscription = $wsus.GetSubscription()
@@ -155,12 +166,11 @@ $updates | ForEach-Object {
         }
         default {
             if ($RestrictToLanguages.Count -gt 0) {
-                if ($_.LocalizedProperties.ContainsKey('Locale')) {
-                    $locale = $_.LocalizedProperties['Locale'].Value
-                    if ($locale -notin $RestrictToLanguages) {
-                        Log "Declining $($_.Title) [language: $locale]"
-                        if (-not $DryRun) { $_.Decline() }
-                    }
+                # If the update's title contains a locale//language string, but not in $RestrictToLanguages, decline it
+                if ($allLocales | Where-Object { $_ -in $_.Title -and $_ -notin $RestrictToLanguages }) {
+                    Log "Declining $($_.Title) [language]"
+                    if (-not $DryRun) { $_.Decline() }
+                    return
                 }
             }
             elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
