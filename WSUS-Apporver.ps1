@@ -47,7 +47,7 @@ function is_selected ($update) {
         return $true
     }
 
-    Foreach ($product in $update.ProductTitles) {
+    foreach ($product in $update.ProductTitles) {
         if ($product -in $update_categories.Title) {
             return $true
         }
@@ -57,7 +57,16 @@ function is_selected ($update) {
 }
 #endregion Function Definitions
 
+#################
+# Main Entry Point
+###################
 
+# Reset log file
+if (Test-Path $logFile) {
+    Remove-Item $logFile
+}
+
+# Load the WSUS assembly
 [void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
 $group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
@@ -65,13 +74,7 @@ $subscription = $wsus.GetSubscription()
 $update_categories = $subscription.GetUpdateCategories()
 $update_classifications = $subscription.GetUpdateClassifications()
 
-
-
-# Reset log file
-if (Test-Path $logFile) {
-    Remove-Item $logFile
-}
-
+# Start synchronization (if not already running)
 if (-not $NoSync) {
     if ($subscription.GetSynchronizationStatus() -eq "NotProcessing") {
         log "Starting synchronization..."
