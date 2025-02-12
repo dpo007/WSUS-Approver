@@ -1,5 +1,65 @@
-# Use instead of approval rules as the approval rule system is too limited
+<#
+.SYNOPSIS
+    Automates the approval and declination of updates in a WSUS (Windows Server Update Services) server.
 
+.DESCRIPTION
+    This script connects to a WSUS server and processes updates based on specified parameters.
+    It can approve or decline updates, handle license agreements, and log actions to a file.
+
+.PARAMETER WsusServer
+    The WSUS server to connect to (default: 'localhost').
+
+.PARAMETER Port
+    The port to use for the WSUS server (default: 8530).
+
+.PARAMETER UseSSL
+    Use SSL to connect to the WSUS server.
+
+.PARAMETER NoSync
+    Do not synchronize updates before processing.
+
+.PARAMETER Reset
+    Reset the update list before processing.
+
+.PARAMETER DryRun
+    Perform a dry run without making any changes.
+
+.PARAMETER DeclineOnly
+    Only decline updates, do not approve any.
+
+.PARAMETER IncludeUpgrades
+    Include upgrade classifications in the approval process.
+
+.PARAMETER DeclineIA64
+    Decline IA64 updates (default: $true).
+
+.PARAMETER DeclineARM64
+    Decline ARM64 updates (default: $true).
+
+.PARAMETER DeclineX86
+    Decline x86 updates (default: $true).
+
+.PARAMETER DeclineX64
+    Decline x64 updates (default: $false).
+
+.PARAMETER DeclinePreview
+    Decline preview updates (default: $true).
+
+.PARAMETER DeclineBeta
+    Decline beta updates (default: $true).
+
+.PARAMETER RestrictToLanguages
+    Only keep updates for specified languages/locales (default: @('en-us', 'en-gb')).
+
+.NOTES
+    The script logs its actions to a log file located in the 'logs' directory under the script's root directory.
+    Superseded and expired updates are declined after new updates are approved.
+
+.EXAMPLE
+    .\WSUS-Approver.ps1 -WsusServer 'wsus-server' -Port 8531 -UseSSL -DryRun
+
+    Connects to the specified WSUS server using SSL on port 8531 and performs a dry run of the update approval process.
+#>
 param (
     [string]$WsusServer = 'localhost',
     [int]$Port = 8530,
