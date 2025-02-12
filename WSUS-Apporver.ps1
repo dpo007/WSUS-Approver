@@ -1,7 +1,7 @@
 # Use instead of approval rules as the approval rule system is too limited
 
 param (
-    [string]$WsusServer = "localhost",
+    [string]$WsusServer = 'localhost',
     [int]$Port = 8530,
     [switch]$UseSSL,
     [switch]$NoSync,
@@ -33,7 +33,7 @@ $approve_classifications = @(
 $approve_group = "All Computers"
 
 
-[reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
+[void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
 $group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
 $subscription = $wsus.GetSubscription()
