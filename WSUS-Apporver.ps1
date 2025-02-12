@@ -115,7 +115,7 @@ $approve_group = 'All Computers'
 
 #region Function Definitions
 function Log ($text) {
-    Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
+    Write-Host "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
 }
 
 function is_selected ($update) {
@@ -167,6 +167,8 @@ if (Test-Path $logFile) {
     Remove-Item $logFile
 }
 
+Log 'DryRun flag set, no changes will be made.'
+
 # Load the WSUS assembly
 [reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration') | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
@@ -192,7 +194,7 @@ while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
 }
 
 # Start by removing deselected updates as there is no need to do further processing on them
-Log 'Checking for deselected updates'
+Log 'Checking for deselected updates...'
 $wsus.GetUpdates() | ForEach-Object {
     if (-not (is_selected $_)) {
         Log "Deleting deselected update: $($_.Title)"
@@ -200,10 +202,13 @@ $wsus.GetUpdates() | ForEach-Object {
     }
 }
 
+
 if ($Reset) {
+    Log 'Resetting update list...'
     $updates = $wsus.GetUpdates()
 }
 else {
+    Log 'Refetching updates...'
     $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 }
 
@@ -279,7 +284,7 @@ $updates | ForEach-Object {
         Log "Declining $($_.Title) [superseded]"
         if (-not $DryRun) { $_.Decline() }
     }
-    elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
+    elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
         Log "Declining $($_.Title) [expired]"
         if (-not $DryRun) { $_.Decline() }
     }
