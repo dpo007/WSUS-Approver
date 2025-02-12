@@ -8,6 +8,7 @@ param (
     [switch]$Reset,
     [switch]$DryRun,
     [switch]$DeclineOnly,
+    [switch]$IncludeUpgrades,
     [bool]$DeclineIA64 = $true,
     [bool]$DeclineARM64 = $true,
     [bool]$DeclineX86 = $true,
@@ -18,7 +19,7 @@ param (
 )
 
 # Debug
-#$DeclineOnly = $true
+$DeclineOnly = $true
 $DryRun = $true
 $noSync = $true
 
@@ -38,9 +39,14 @@ $approve_classifications = @(
     'Service Packs',
     'Tools',
     'Update Rollups',
-    'Updates',
-    'Upgrades'
+    'Updates'
 )
+
+if ($IncludeUpgrades) {
+    $approve_classifications += 'Upgrades'
+}
+
+# All Computers group (default group for all computers in WSUS)
 $approve_group = 'All Computers'
 
 [string[]]$allLocales = [System.Globalization.CultureInfo]::GetCultures([System.Globalization.CultureTypes]::AllCultures) | Where-Object { $_.Name -match "-" } | Select-Object -ExpandProperty Name
