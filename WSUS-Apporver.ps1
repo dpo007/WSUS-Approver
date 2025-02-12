@@ -150,15 +150,15 @@ $updates | ForEach-Object {
         }
         default {
             if ($RestrictToLanguages.Count -gt 0) {
-                if ($_.LocalizedProperties.ContainsKey("Locale")) {
-                    $locale = $_.LocalizedProperties["Locale"].Value
+                if ($_.LocalizedProperties.ContainsKey('Locale')) {
+                    $locale = $_.LocalizedProperties['Locale'].Value
                     if ($locale -notin $RestrictToLanguages) {
                         Log "Declining $($_.Title) [language: $locale]"
                         if (-not $DryRun) { $_.Decline() }
                     }
                 }
             }
-            elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
+            elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
                 # Handle superseded and expired packages after any new updates have been approved
                 return
             }
@@ -171,7 +171,7 @@ $updates | ForEach-Object {
                     }
 
                     Log "Approving $($_.Title)"
-                    if (-not $DryRun) { $_.Approve("Install", $group) }
+                    if (-not $DryRun) { $_.Approve('Install', $group) }
                 }
             }
         }
