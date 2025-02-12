@@ -224,11 +224,9 @@ $update_categories = $subscription.GetUpdateCategories()
 $update_classifications = $subscription.GetUpdateClassifications()
 
 # Start synchronization (if not already running)
-if (-not $NoSync) {
-    if ($subscription.GetSynchronizationStatus() -eq 'NotProcessing') {
-        Log 'Starting synchronization...'
-        $subscription.StartSynchronization()
-    }
+if (-not $NoSync -and $subscription.GetSynchronizationStatus() -eq 'NotProcessing') {
+    Log 'Starting synchronization...'
+    $subscription.StartSynchronization()
 }
 
 # Wait for any currently running synchronization jobs to finish before continuing
@@ -252,7 +250,7 @@ if ($Reset) {
     $updates = $wsus.GetUpdates()
 }
 else {
-    Log 'Refetching updates...'
+    Log 'Refreshing update list...'
     $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 }
 
@@ -323,7 +321,9 @@ foreach ($update in $updates) {
 # After any new superseding updates have been approved above, superseded and expired updates
 # can be declined. We need to handle both here as it seems like superseded updates are also
 # marked expired, but some updates are just expired without being superseded.
+Log 'Refreshing update list...'
 $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
+Log 'Declining superseded and expired updates...'
 $updates | ForEach-Object {
     if ($_.IsSuperseded) {
         Log ('Declining {0} [superseded]' -f $_.Title) -ForegroundColor DarkRed
@@ -334,3 +334,5 @@ $updates | ForEach-Object {
         if (-not $DryRun) { $_.Decline() }
     }
 }
+
+Log 'Processing complete.' -ForegroundColor DarkGreen
