@@ -33,7 +33,7 @@ This PowerShell script automates the approval and declination of updates in a **
 
 
 ### **4️⃣ Smarter Update Filtering & Approval Process**
-✅ **New function:** `TestUpdateTitleLanguageMatch` - prevents non-English updates from being approved
+✅ **New function:** `TestUpdateTitleLanguageMatch` - identifies language-specific updates.
 
 ✅ **Replaced inefficient `if-else` conditions** with a **PowerShell `switch` statement** for better performance
 
