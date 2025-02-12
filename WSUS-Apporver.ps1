@@ -87,7 +87,7 @@ $NoSync = $true
 $ErrorActionPreference = 'Stop'
 
 #region Initialize values
-$logFile = ('{0}\logs\wsus-approver_{1}.Log' -f $PSScriptRoot, (Get-Date).ToString('dddd_htt'))
+$script:logFile = ('{0}\logs\wsus-approver_{1}.Log' -f $PSScriptRoot, (Get-Date).ToString('dddd_htt'))
 
 # Do not add upgrades here. They are currently handled manually for more control
 $approve_classifications = @(
@@ -114,9 +114,25 @@ $approve_group = 'All Computers'
 #endregion Initialize values
 
 #region Function Definitions
-function Log ($text) {
-    Write-Host "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
+function Log {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+        [System.ConsoleColor]$ForegroundColor = [System.ConsoleColor]::LightGray
+    )
+
+    # Format the log entry with a timestamp
+    $timestamp = (Get-Date -Format 's')
+    $logEntry = '{0} :: {1}' -f $timestamp, $Message
+
+    # Write the log entry to the host (console) with the specified foreground color
+    Write-Host ('{0} :: ' -f $timestamp) -NoNewline
+    Write-Host $Message -ForegroundColor $ForegroundColor
+
+    # Append the log entry to the file
+    Add-Content -Path $script:logFile -Value $logEntry
 }
+
 
 function is_selected ($update) {
     #
@@ -163,8 +179,8 @@ if (-not (Test-Path ('{0}\logs' -f $PSScriptRoot))) {
 }
 
 # Reset Log file
-if (Test-Path $logFile) {
-    Remove-Item $logFile
+if (Test-Path $script:logFile) {
+    Remove-Item $script:logFile
 }
 
 Log 'DryRun flag set, no changes will be made.'
