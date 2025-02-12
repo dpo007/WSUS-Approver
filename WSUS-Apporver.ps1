@@ -18,7 +18,7 @@ param (
 )
 
 # Initialize values
-$logFile = ('{0}\logs\wsus-approver.log' -f $PSScriptRoot)
+$logFile = ('{0}\logs\wsus-approver.Log' -f $PSScriptRoot)
 
 # Do not add upgrades here. They are currently handled manually for more control
 $approve_classifications = @(
@@ -35,7 +35,7 @@ $approve_classifications = @(
 $approve_group = 'All Computers'
 
 #region Function Definitions
-function log ($text) {
+function Log ($text) {
     Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
 }
 
@@ -77,22 +77,22 @@ $update_classifications = $subscription.GetUpdateClassifications()
 # Start synchronization (if not already running)
 if (-not $NoSync) {
     if ($subscription.GetSynchronizationStatus() -eq "NotProcessing") {
-        log "Starting synchronization..."
+        Log "Starting synchronization..."
         $subscription.StartSynchronization()
     }
 }
 
 # Wait for any currently running synchronization jobs to finish before continuing
 while ($subscription.GetSynchronizationStatus() -ne "NotProcessing") {
-    log "Waiting for synchronization to finish..."
+    Log "Waiting for synchronization to finish..."
     Start-Sleep -s 10
 }
 
 # Start by removing deselected updates as there is no need to do further processing on them
-log "Checking for deselected updates"
+Log "Checking for deselected updates"
 $wsus.GetUpdates() | ForEach-Object {
     if (-not (is_selected $_)) {
-        log "Deleting deselected update: $($_.Title)"
+        Log "Deleting deselected update: $($_.Title)"
         if (-not $DryRun) { $wsus.DeleteUpdate($_.Id.UpdateId) }
     }
 }
@@ -105,53 +105,75 @@ else {
 }
 
 $updates | ForEach-Object {
-    if ($DeclineIA64 -and $_.Title -Match 'ia64|itanium' -or $_.LegacyName -Match 'ia64|itanium') {
-        log "Declining $($_.Title) [ia64]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($DeclineARM64 -and $_.Title -Match 'arm64') {
-        log "Declining $($_.Title) [arm64]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($DeclineX86 -and $_.Title -Match 'x86') {
-        log "Declining $($_.Title) [x86]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($DeclineX64 -and $_.Title -Match 'x64') {
-        log "Declining $($_.Title) [x64]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($DeclinePreview -and $_.Title -Match 'preview') {
-        log "Declining $($_.Title) [preview]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
-        log "Declining $($_.Title) [beta]"
-        if (-not $DryRun) { $_.Decline() }
-    }
-    elseif ($RestrictToLanguages.Count -gt 0) {
-        if ($_.LocalizedProperties.ContainsKey("Locale")) {
-            $locale = $_.LocalizedProperties["Locale"].Value
-            if ($locale -notin $RestrictToLanguages) {
-                log "Declining $($_.Title) [language: $locale]"
+    switch -Regex ($_.Title) {
+        'ia64|itanium' {
+            if ($DeclineIA64 -or $_.LegacyName -Match 'ia64|itanium') {
+                Log "Declining $($_.Title) [ia64]"
                 if (-not $DryRun) { $_.Decline() }
             }
+            break
         }
-    }
-    elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
-        # Handle superseded and expired packages after any new updates have been approved
-        return
-    }
-    elseif (-not $_.IsApproved -and -not $DeclineOnly) {
-        # Add this condition
-        if ($_.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($_.UpdateClassificationTitle)) {
-            if ($_.RequiresLicenseAgreementAcceptance) {
-                log "Accepting license agreement for $($_.Title)"
-                if (-not $DryRun) { $_.AcceptLicenseAgreement() }
+        'arm64' {
+            if ($DeclineARM64) {
+                Log "Declining $($_.Title) [arm64]"
+                if (-not $DryRun) { $_.Decline() }
             }
+            break
+        }
+        'x86' {
+            if ($DeclineX86) {
+                Log "Declining $($_.Title) [x86]"
+                if (-not $DryRun) { $_.Decline() }
+            }
+            break
+        }
+        'x64' {
+            if ($DeclineX64) {
+                Log "Declining $($_.Title) [x64]"
+                if (-not $DryRun) { $_.Decline() }
+            }
+            break
+        }
+        'preview' {
+            if ($DeclinePreview) {
+                Log "Declining $($_.Title) [preview]"
+                if (-not $DryRun) { $_.Decline() }
+            }
+            break
+        }
+        'beta' {
+            if ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
+                Log "Declining $($_.Title) [beta]"
+                if (-not $DryRun) { $_.Decline() }
+            }
+            break
+        }
+        default {
+            if ($RestrictToLanguages.Count -gt 0) {
+                if ($_.LocalizedProperties.ContainsKey("Locale")) {
+                    $locale = $_.LocalizedProperties["Locale"].Value
+                    if ($locale -notin $RestrictToLanguages) {
+                        Log "Declining $($_.Title) [language: $locale]"
+                        if (-not $DryRun) { $_.Decline() }
+                    }
+                }
+            }
+            elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
+                # Handle superseded and expired packages after any new updates have been approved
+                return
+            }
+            elseif (-not $_.IsApproved -and -not $DeclineOnly) {
+                # Add this condition
+                if ($_.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($_.UpdateClassificationTitle)) {
+                    if ($_.RequiresLicenseAgreementAcceptance) {
+                        Log "Accepting license agreement for $($_.Title)"
+                        if (-not $DryRun) { $_.AcceptLicenseAgreement() }
+                    }
 
-            log "Approving $($_.Title)"
-            if (-not $DryRun) { $_.Approve("Install", $group) }
+                    Log "Approving $($_.Title)"
+                    if (-not $DryRun) { $_.Approve("Install", $group) }
+                }
+            }
         }
     }
 }
@@ -162,11 +184,11 @@ $updates | ForEach-Object {
 $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 $updates | ForEach-Object {
     if ($_.IsSuperseded) {
-        log "Declining $($_.Title) [superseded]"
+        Log "Declining $($_.Title) [superseded]"
         if (-not $DryRun) { $_.Decline() }
     }
     elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
-        log "Declining $($_.Title) [expired]"
+        Log "Declining $($_.Title) [expired]"
         if (-not $DryRun) { $_.Decline() }
     }
 }
