@@ -134,15 +134,17 @@ function Log {
 }
 
 
-function is_selected ($update) {
-    #
-    # Is there any way to check update against language list in here?
-    #
-    if ($update.UpdateClassificationTitle -in $update_classifications.Title) {
+function IsSelected {
+    param (
+        [Parameter(Mandatory = $true)]
+        [Microsoft.UpdateServices.Administration.IUpdate]$Update
+    )
+
+    if ($Update.UpdateClassificationTitle -in $update_classifications.Title) {
         return $true
     }
 
-    foreach ($product in $update.ProductTitles) {
+    foreach ($product in $Update.ProductTitles) {
         if ($product -in $update_categories.Title) {
             return $true
         }
@@ -212,7 +214,7 @@ while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
 # Start by removing deselected updates as there is no need to do further processing on them
 Log 'Checking for deselected updates...'
 $wsus.GetUpdates() | ForEach-Object {
-    if (-not (is_selected $_)) {
+    if (-not (IsSelected $_)) {
         Log "Deleting deselected update: $($_.Title)"
         if (-not $DryRun) { $wsus.DeleteUpdate($_.Id.UpdateId) }
     }
