@@ -61,6 +61,11 @@ function is_selected ($update) {
 # Main Entry Point
 ###################
 
+# Ensure log folder exists
+if (-not (Test-Path ('{0}\logs' -f $PSScriptRoot))) {
+    New-Item -ItemType Directory -Path ('{0}\logs' -f $PSScriptRoot) | Out-Null
+}
+
 # Reset log file
 if (Test-Path $logFile) {
     Remove-Item $logFile
