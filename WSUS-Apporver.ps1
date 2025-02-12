@@ -87,7 +87,7 @@ $noSync = $true
 $ErrorActionPreference = 'Stop'
 
 #region Initialize values
-$logFile = ('{0}\logs\wsus-approver.Log' -f $PSScriptRoot)
+$logFile = ('{0}\logs\wsus-approver_{1}.Log' -f $PSScriptRoot, (Get-Date).ToString('dddd_htt'))
 
 # Do not add upgrades here. They are currently handled manually for more control
 $approve_classifications = @(
