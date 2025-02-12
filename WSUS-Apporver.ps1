@@ -212,15 +212,15 @@ if (-not $NoSync) {
 
 # Wait for any currently running synchronization jobs to finish before continuing
 while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
-    Log 'Waiting for synchronization to finish...'
+    Log ('{0} Waiting for synchronization to finish...' -f [char]0x2514) -ForegroundColor DarkGray
     Start-Sleep -s 10
 }
 
-# Start by removing deselected updates as there is no need to do further processing on them
+# Start by removing deselected updates as there is no need to do further processing on
 Log 'Checking for deselected updates...'
 $wsus.GetUpdates() | ForEach-Object {
     if (-not (IsSelected $_)) {
-        Log "Deleting deselected update: $($_.Title)"
+        Log ('Deleting deselected update: {0}' -f $_.Title) -ForegroundColor DarkYellow
         if (-not $DryRun) { $wsus.DeleteUpdate($_.Id.UpdateId) }
     }
 }
@@ -235,47 +235,48 @@ else {
     $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 }
 
+Log 'Processing updates...'
 foreach ($update in $updates) {
     switch ($true) {
         { $DeclineIA64 -and ($update.Title -match 'ia64|itanium' -or $update.LegacyName -match 'ia64|itanium') } {
-            Log "Declining $($update.Title) [ia64]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [ia64]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $DeclineARM64 -and $update.Title -match 'arm64' } {
-            Log "Declining $($update.Title) [arm64]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [arm64]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $DeclineX86 -and $update.Title -match 'x86' } {
-            Log "Declining $($update.Title) [x86]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [x86]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $DeclineX64 -and $update.Title -match 'x64' } {
-            Log "Declining $($update.Title) [x64]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [x64]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $DeclinePreview -and $update.Title -match 'preview' } {
-            Log "Declining $($update.Title) [preview]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [preview]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $DeclineBeta -and ($update.IsBeta -or $update.Title -match 'beta') } {
-            Log "Declining $($update.Title) [beta]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [beta]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
         { $RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages) } {
-            Log "Declining $($update.Title) [language]"
-            if (-not $DryRun) { $update.Decline() }
+            Log ('Declining {0} [language]' -f $update.Title)
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
             break
         }
 
@@ -287,11 +288,11 @@ foreach ($update in $updates) {
         { -not $update.IsApproved -and -not $DeclineOnly } {
             if ($update.IsWsusInfrastructureUpdate -or $approve_classifications.Contains($update.UpdateClassificationTitle)) {
                 if ($update.RequiresLicenseAgreementAcceptance) {
-                    Log "Accepting license agreement for $($update.Title)"
+                    Log ('Accepting license agreement for {0}' -f $update.Title) -ForegroundColor DarkCyan
                     if (-not $DryRun) { $update.AcceptLicenseAgreement() }
                 }
 
-                Log "Approving $($update.Title)"
+                Log ('Approving {0}' -f $update.Title) -ForegroundColor Green
                 if (-not $DryRun) { $update.Approve('Install', $group) }
             }
         }
@@ -304,11 +305,11 @@ foreach ($update in $updates) {
 $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 $updates | ForEach-Object {
     if ($_.IsSuperseded) {
-        Log "Declining $($_.Title) [superseded]"
+        Log ('Declining {0} [superseded]' -f $_.Title)
         if (-not $DryRun) { $_.Decline() }
     }
     elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
-        Log "Declining $($_.Title) [expired]"
+        Log ('Declining {0} [expired]' -f $_.Title)
         if (-not $DryRun) { $_.Decline() }
     }
 }
