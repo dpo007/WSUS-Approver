@@ -1,4 +1,4 @@
-# WSUS Update Management Script - Enhanced Version
+# WSUS Automatic Approval/Declination
 
 ## Overview
 This PowerShell script automates the approval and declination of updates in a **WSUS (Windows Server Update Services)** server. It builds upon the original script **`wsus-approval.ps1`**, acquired from [this GitHub repository](https://github.com/hkbakke/wsus-helpers), and introduces several key improvements.
@@ -22,7 +22,7 @@ This PowerShell script automates the approval and declination of updates in a **
 |------------|----------------|
 | `-DeclineOnly` | Skips approvals, only declines updates |
 | `-IncludeUpgrades` | Optionally includes upgrade classifications in approvals |
-| `-RestrictToLanguages` | Filters updates based on specified locales (default: `en-us`, `en-gb`) |
+| `-RestrictToLanguages` | Limits updates to specific languages/locales (default: en-us, en-gb). If empty, all language versions of an update will be approved. |
 
 ### **3️⃣ Enhanced Logging System**
 ✅ **Timestamped logging** with **colored console output** for better readability
@@ -73,11 +73,11 @@ This PowerShell script automates the approval and declination of updates in a **
 ### **Basic Example:**
 ```powershell
 # Connects to WSUS and runs a dry run without making any changes
-.\WSUS-Approver.ps1 -WsusServer "wsus-server" -Port 8531 -UseSSL -DryRun
+.\WSUS-Approver.ps1 -DeclineOnly -DryRun
 ```
 
 ### **Advanced Example:**
 ```powershell
-# Approve updates including upgrades, decline non-English updates, and perform real changes
-.\WSUS-Approver.ps1 -IncludeUpgrades -RestrictToLanguages @("en-us") -DryRun:$false
+# Approve updates including upgrades, decline non-English (US) updates, and perform real changes
+.\WSUS-Approver.ps1 -IncludeUpgrades -RestrictToLanguages @("en-us")
 ```
