@@ -189,7 +189,7 @@ if (Test-Path $script:logFile) {
 }
 
 if ($DryRun) {
-    Log 'DryRun flag set, no changes will be made.'
+    Log 'DryRun flag set, no changes will be made.' -ForegroundColor Yellow
 }
 
 # Load the WSUS assembly
@@ -305,11 +305,11 @@ foreach ($update in $updates) {
 $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
 $updates | ForEach-Object {
     if ($_.IsSuperseded) {
-        Log ('Declining {0} [superseded]' -f $_.Title)
+        Log ('Declining {0} [superseded]' -f $_.Title) -ForegroundColor DarkRed
         if (-not $DryRun) { $_.Decline() }
     }
     elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
-        Log ('Declining {0} [expired]' -f $_.Title)
+        Log ('Declining {0} [expired]' -f $_.Title) -ForegroundColor DarkRed
         if (-not $DryRun) { $_.Decline() }
     }
 }
