@@ -81,7 +81,7 @@ param (
 # Debug
 $DeclineOnly = $true
 $DryRun = $true
-$noSync = $true
+$NoSync = $true
 
 # Set default error action to Stop
 $ErrorActionPreference = 'Stop'
