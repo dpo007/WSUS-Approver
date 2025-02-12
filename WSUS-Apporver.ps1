@@ -188,7 +188,9 @@ if (Test-Path $script:logFile) {
     Remove-Item $script:logFile
 }
 
-Log 'DryRun flag set, no changes will be made.'
+if ($DryRun) {
+    Log 'DryRun flag set, no changes will be made.'
+}
 
 # Load the WSUS assembly
 [reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration') | Out-Null
