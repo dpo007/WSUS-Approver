@@ -79,9 +79,9 @@ param (
 )
 
 #region Debug Values
-$DeclineOnly = $true
-$DryRun = $true
-$NoSync = $true
+#$DeclineOnly = $true
+#$DryRun = $true
+#$NoSync = $true
 #endregion Debug Values
 
 # Set default error action to Stop
