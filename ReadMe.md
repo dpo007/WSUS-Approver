@@ -21,7 +21,7 @@ This PowerShell script automates the approval and declination of updates in a **
 | Parameter | Description |
 |------------|----------------|
 | `-DeclineOnly` | Skips approvals, only declines updates |
-| `-IncludeUpgrades` | Optionally includes upgrade classifications in approvals |
+| `-IncludeUpgrades` | Optionally includes "Upgrades" classification in approvals |
 | `-RestrictToLanguages` | Limits updates to specific languages/locales (default: en-us, en-gb). If empty, all language versions of an update will be approved. |
 
 ### **3️⃣ Enhanced Logging System**
@@ -60,14 +60,14 @@ This PowerShell script automates the approval and declination of updates in a **
 | `-Reset` | Resets the update list before processing |
 | `-DryRun` | Runs in dry-run mode (no actual changes made) |
 | `-DeclineOnly` | Only declines updates, skipping approvals |
-| `-IncludeUpgrades` | Includes upgrade classifications in approvals |
+| `-IncludeUpgrades` | Includes "Upgrades" classification in approvals |
 | `-DeclineIA64` | Declines IA64 updates (default: `true`) |
 | `-DeclineARM64` | Declines ARM64 updates (default: `true`) |
 | `-DeclineX86` | Declines x86 updates (default: `true`) |
 | `-DeclineX64` | Declines x64 updates (default: `false`) |
 | `-DeclinePreview` | Declines preview updates (default: `true`) |
 | `-DeclineBeta` | Declines beta updates (default: `true`) |
-| `-RestrictToLanguages` | Limits updates to specific languages/locales (default: `en-us, en-gb`) |
+| `-RestrictToLanguages` | Limits updates to specific languages/locales (default: en-us, en-gb). If empty, all language versions of an update will be approved. |
 
 ## 🔧 How to Use
 ### **Basic Example:**
