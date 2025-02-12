@@ -188,9 +188,27 @@ if (Test-Path $script:logFile) {
     Remove-Item $script:logFile
 }
 
+#region Output script parameter choices
 if ($DryRun) {
-    Log 'DryRun flag set, no changes will be made.' -ForegroundColor Yellow
+    Log ('{0} DryRun flag set, no changes will be made.' -f [char]0x2713) -ForegroundColor Yellow
 }
+
+if ($NoSync) {
+    Log ('{0} NoSync flag set, no synchronization will be performed.' -f [char]0x2713) -ForegroundColor Yellow
+}
+
+if ($IncludeUpgrades) {
+    Log ('{0} IncludeUpgrades flag set, "Upgrades" classification will be included in the processing.' -f [char]0x2713) -ForegroundColor Yellow
+}
+
+if ($DeclineOnly) {
+    Log ('{0} DeclineOnly flag set, only declining updates, no approvals will be made.' -f [char]0x2713) -ForegroundColor Yellow
+}
+
+if ($Reset) {
+    Log ('{0} Reset flag set, the update list will be reset before processing.' -f [char]0x2713) -ForegroundColor Yellow
+}
+#endregion Output script parameter choices
 
 # Load the WSUS assembly
 [reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration') | Out-Null
@@ -213,7 +231,7 @@ if (-not $NoSync) {
 # Wait for any currently running synchronization jobs to finish before continuing
 while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
     Log ('{0} Waiting for synchronization to finish...' -f [char]0x2514) -ForegroundColor DarkGray
-    Start-Sleep -s 10
+    Start-Sleep -Seconds 10
 }
 
 # Start by removing deselected updates as there is no need to do further processing on
@@ -225,7 +243,7 @@ $wsus.GetUpdates() | ForEach-Object {
     }
 }
 
-
+# Refresh the list of updates
 if ($Reset) {
     Log 'Resetting update list...'
     $updates = $wsus.GetUpdates()
