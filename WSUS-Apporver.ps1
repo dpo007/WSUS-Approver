@@ -89,7 +89,7 @@ $ErrorActionPreference = 'Stop'
 #region Initialize values
 $script:logFile = ('{0}\logs\wsus-approver_{1}.Log' -f $PSScriptRoot, (Get-Date).ToString('dddd_htt'))
 
-# Do not add upgrades here. They are currently handled manually for more control
+# Classifications to process for approval
 $approve_classifications = @(
     'Critical Updates',
     'Definition Updates',
@@ -102,11 +102,12 @@ $approve_classifications = @(
     'Updates'
 )
 
+# Include Upgrades classifications if specified
 if ($IncludeUpgrades) {
     $approve_classifications += 'Upgrades'
 }
 
-# All Computers group (default group for all computers in WSUS)
+# Approval group to target
 $approve_group = 'All Computers'
 
 # Get all locales (languages) from the system
@@ -133,23 +134,25 @@ function Log {
     Add-Content -Path $script:logFile -Value $logEntry
 }
 
-
 function IsSelected {
     param (
         [Parameter(Mandatory = $true)]
         [Microsoft.UpdateServices.Administration.IUpdate]$Update
     )
 
+    # Check if the update's classification title is in the list of update classifications
     if ($Update.UpdateClassificationTitle -in $update_classifications.Title) {
         return $true
     }
 
+    # Check if any of the update's product titles are in the list of update categories
     foreach ($product in $Update.ProductTitles) {
         if ($product -in $update_categories.Title) {
             return $true
         }
     }
 
+    # Return false if neither the classification nor the product title matches
     return $false
 }
 
