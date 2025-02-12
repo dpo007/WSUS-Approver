@@ -13,34 +13,28 @@ param (
     [bool]$DeclineX86 = $true,
     [bool]$DeclineX64 = $false,
     [bool]$DeclinePreview = $true,
-    [bool]$DeclineBeta = $true
+    [bool]$DeclineBeta = $true,
+    [string[]]$RestrictToLanguages = @('en-us', 'en-gb') # Only these languages/locales will be kept
 )
 
+# Initialize values
 $logFile = ('{0}\logs\wsus-approver.log' -f $PSScriptRoot)
 
 # Do not add upgrades here. They are currently handled manually for more control
 $approve_classifications = @(
-    "Critical Updates",
-    "Definition Updates",
-    "Drivers",
-    "Feature Packs",
-    "Security Updates",
-    "Service Packs",
-    "Tools",
-    "Update Rollups",
-    "Updates"
+    'Critical Updates',
+    'Definition Updates',
+    'Drivers',
+    'Feature Packs',
+    'Security Updates',
+    'Service Packs',
+    'Tools',
+    'Update Rollups',
+    'Updates'
 )
-$approve_group = "All Computers"
+$approve_group = 'All Computers'
 
-
-[void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
-$wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
-$group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
-$subscription = $wsus.GetSubscription()
-$update_categories = $subscription.GetUpdateCategories()
-$update_classifications = $subscription.GetUpdateClassifications()
-
-
+#region Function Definitions
 function log ($text) {
     Write-Output "$(Get-Date -Format s): $text" | Tee-Object -Append $logFile
 }
@@ -61,6 +55,17 @@ function is_selected ($update) {
 
     return $false
 }
+#endregion Function Definitions
+
+
+[void][reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
+$wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
+$group = $wsus.GetComputerTargetGroups() | Where-Object { $_.Name -eq $approve_group }
+$subscription = $wsus.GetSubscription()
+$update_categories = $subscription.GetUpdateCategories()
+$update_classifications = $subscription.GetUpdateClassifications()
+
+
 
 # Reset log file
 if (Test-Path $logFile) {
@@ -120,6 +125,15 @@ $updates | ForEach-Object {
     elseif ($DeclineBeta -and ($_.IsBeta -or $_.Title -Match 'beta')) {
         log "Declining $($_.Title) [beta]"
         if (-not $DryRun) { $_.Decline() }
+    }
+    elseif ($RestrictToLanguages.Count -gt 0) {
+        if ($_.LocalizedProperties.ContainsKey("Locale")) {
+            $locale = $_.LocalizedProperties["Locale"].Value
+            if ($locale -notin $RestrictToLanguages) {
+                log "Declining $($_.Title) [language: $locale]"
+                if (-not $DryRun) { $_.Decline() }
+            }
+        }
     }
     elseif ($_.IsSuperseded -or $_.PublicationState -eq "Expired") {
         # Handle superseded and expired packages after any new updates have been approved
