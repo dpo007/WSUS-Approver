@@ -87,7 +87,9 @@ $NoSync = $true
 $ErrorActionPreference = 'Stop'
 
 #region Initialize values
-$script:logFile = ('{0}\logs\wsus-approver_{1}.Log' -f $PSScriptRoot, (Get-Date).ToString('dddd_htt'))
+# Log file path
+$logFolder = ('{0}\logs' -f $PSScriptRoot)
+$script:logFile = ('{0}\wsus-approver_{1}.Log' -f $logFolder, (Get-Date).ToString('dddd_htt'))
 
 # Classifications to process for approval
 $approve_classifications = @(
@@ -179,8 +181,8 @@ function TestUpdateTitleLanguageMatch {
 ###################
 
 # Ensure Log folder exists
-if (-not (Test-Path ('{0}\logs' -f $PSScriptRoot))) {
-    New-Item -ItemType Directory -Path ('{0}\logs' -f $PSScriptRoot) | Out-Null
+if (-not (Test-Path $logFolder)) {
+    New-Item -ItemType Directory -Path $logFolder | Out-Null
 }
 
 # Reset Log file
