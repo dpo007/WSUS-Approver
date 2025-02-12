@@ -78,10 +78,11 @@ param (
     [string[]]$RestrictToLanguages = @('en-us', 'en-gb') # Only these languages/locales will be kept
 )
 
-# Debug
+#region Debug Values
 $DeclineOnly = $true
 $DryRun = $true
 $NoSync = $true
+#endregion Debug Values
 
 # Set default error action to Stop
 $ErrorActionPreference = 'Stop'
