@@ -168,7 +168,7 @@ if (Test-Path $logFile) {
 }
 
 # Load the WSUS assembly
-[reflection.assembly]::LoadWithPartialName("Microsoft.UpdateServices.Administration") | Out-Null
+[reflection.assembly]::LoadWithPartialName('Microsoft.UpdateServices.Administration') | Out-Null
 $wsus = [Microsoft.UpdateServices.Administration.AdminProxy]::GetUpdateServer($WsusServer, $UseSSL, $Port)
 
 # Get the groups, subscription, categories and classifications
@@ -179,20 +179,20 @@ $update_classifications = $subscription.GetUpdateClassifications()
 
 # Start synchronization (if not already running)
 if (-not $NoSync) {
-    if ($subscription.GetSynchronizationStatus() -eq "NotProcessing") {
-        Log "Starting synchronization..."
+    if ($subscription.GetSynchronizationStatus() -eq 'NotProcessing') {
+        Log 'Starting synchronization...'
         $subscription.StartSynchronization()
     }
 }
 
 # Wait for any currently running synchronization jobs to finish before continuing
 while ($subscription.GetSynchronizationStatus() -ne 'NotProcessing') {
-    Log "Waiting for synchronization to finish..."
+    Log 'Waiting for synchronization to finish...'
     Start-Sleep -s 10
 }
 
 # Start by removing deselected updates as there is no need to do further processing on them
-Log "Checking for deselected updates"
+Log 'Checking for deselected updates'
 $wsus.GetUpdates() | ForEach-Object {
     if (-not (is_selected $_)) {
         Log "Deleting deselected update: $($_.Title)"
@@ -251,7 +251,7 @@ foreach ($update in $updates) {
             break
         }
 
-        { $update.IsSuperseded -or $update.PublicationState -eq "Expired" } {
+        { $update.IsSuperseded -or $update.PublicationState -eq 'Expired' } {
             # Skip superseded and expired updates, they will be declined later
             continue
         }
@@ -264,7 +264,7 @@ foreach ($update in $updates) {
                 }
 
                 Log "Approving $($update.Title)"
-                if (-not $DryRun) { $update.Approve("Install", $group) }
+                if (-not $DryRun) { $update.Approve('Install', $group) }
             }
         }
     }
