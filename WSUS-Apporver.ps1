@@ -122,7 +122,7 @@ function Log {
     param (
         [Parameter(Mandatory = $true)]
         [string]$Message,
-        [System.ConsoleColor]$ForegroundColor = [System.ConsoleColor]::LightGray
+        [System.ConsoleColor]$ForegroundColor = [System.ConsoleColor]::Gray
     )
 
     # Format the log entry with a timestamp
@@ -134,7 +134,7 @@ function Log {
     Write-Host $Message -ForegroundColor $ForegroundColor
 
     # Append the log entry to the file
-    Add-Content -Path $script:logFile -Value $logEntry
+    Add-Content -Path $script:logFile -Value $logEntry -Encoding UTF8
 }
 
 function IsSelected {
@@ -259,43 +259,43 @@ foreach ($update in $updates) {
     switch ($true) {
         { $DeclineIA64 -and ($update.Title -match 'ia64|itanium' -or $update.LegacyName -match 'ia64|itanium') } {
             Log ('Declining {0} [ia64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $DeclineARM64 -and $update.Title -match 'arm64' } {
             Log ('Declining {0} [arm64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $DeclineX86 -and $update.Title -match 'x86' } {
             Log ('Declining {0} [x86]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $DeclineX64 -and $update.Title -match 'x64' } {
             Log ('Declining {0} [x64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $DeclinePreview -and $update.Title -match 'preview' } {
             Log ('Declining {0} [preview]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $DeclineBeta -and ($update.IsBeta -or $update.Title -match 'beta') } {
             Log ('Declining {0} [beta]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
         { $RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages) } {
             Log ('Declining {0} [language]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor DarkRed
+            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
             break
         }
 
@@ -318,19 +318,21 @@ foreach ($update in $updates) {
     }
 }
 
-# After any new superseding updates have been approved above, superseded and expired updates
-# can be declined. We need to handle both here as it seems like superseded updates are also
-# marked expired, but some updates are just expired without being superseded.
+# Once new superseding updates are approved, we can proceed with declining
+# superseded and expired updates. Both cases need to be handled separately
+# since superseded updates often get marked as expired, but some updates
+# may be expired without having been superseded.
 Log 'Refreshing update list...'
 $updates = $wsus.GetUpdates() | Where-Object { -not $_.IsDeclined }
+
 Log 'Declining superseded and expired updates...'
 $updates | ForEach-Object {
     if ($_.IsSuperseded) {
-        Log ('Declining {0} [superseded]' -f $_.Title) -ForegroundColor DarkRed
+        Log ('Declining {0} [superseded]' -f $_.Title) -ForegroundColor Red
         if (-not $DryRun) { $_.Decline() }
     }
     elseif ($_.IsSuperseded -or $_.PublicationState -eq 'Expired') {
-        Log ('Declining {0} [expired]' -f $_.Title) -ForegroundColor DarkRed
+        Log ('Declining {0} [expired]' -f $_.Title) -ForegroundColor Red
         if (-not $DryRun) { $_.Decline() }
     }
 }
