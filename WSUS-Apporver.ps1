@@ -109,6 +109,7 @@ if ($IncludeUpgrades) {
 # All Computers group (default group for all computers in WSUS)
 $approve_group = 'All Computers'
 
+# Get all locales (languages) from the system
 [string[]]$allLocales = [System.Globalization.CultureInfo]::GetCultures([System.Globalization.CultureTypes]::AllCultures) | Where-Object { $_.Name -match "-" } | Select-Object -ExpandProperty Name
 #endregion Initialize values
 
