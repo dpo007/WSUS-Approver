@@ -54,6 +54,8 @@
 .NOTES
     The script logs its actions to a log file located in the 'logs' directory under the script's root directory.
     Superseded and expired updates are declined after new updates are approved.
+    Repository: https://github.com/dpo007/WSUS-Approver
+
 
 .EXAMPLE
     .\WSUS-Approver.ps1 -WsusServer 'wsus-server' -Port 8531 -UseSSL -DryRun
