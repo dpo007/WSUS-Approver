@@ -260,44 +260,44 @@ Log 'Processing updates...'
 foreach ($update in $updates) {
     switch ($true) {
         { $DeclineIA64 -and ($update.Title -match 'ia64|itanium' -or $update.LegacyName -match 'ia64|itanium') } {
-            Log ('Declining {0} [ia64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [ia64]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $DeclineARM64 -and $update.Title -match 'arm64' } {
-            Log ('Declining {0} [arm64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [arm64]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $DeclineX86 -and $update.Title -match 'x86' } {
-            Log ('Declining {0} [x86]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [x86]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $DeclineX64 -and $update.Title -match 'x64' } {
-            Log ('Declining {0} [x64]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [x64]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $DeclinePreview -and $update.Title -match 'preview' } {
-            Log ('Declining {0} [preview]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [preview]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $DeclineBeta -and ($update.IsBeta -or $update.Title -match 'beta') } {
-            Log ('Declining {0} [beta]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [beta]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
         { $RestrictToLanguages.Count -gt 0 -and (TestUpdateTitleLanguageMatch -Title $update.Title -AllLocales $allLocales -RestrictToLanguages $RestrictToLanguages) } {
-            Log ('Declining {0} [language]' -f $update.Title)
-            if (-not $DryRun) { $update.Decline() } -ForegroundColor Red
+            Log ('Declining {0} [language]' -f $update.Title) -ForegroundColor Red
+            if (-not $DryRun) { $update.Decline() }
             break
         }
 
